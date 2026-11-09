@@ -1,232 +1,108 @@
-import asyncio
-import io
-import os
-import time
-import requests
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
 
-from bs4 import BeautifulSoup
-from asyncio import create_subprocess_exec as asyncrunapp
-from asyncio.subprocess import PIPE as asyncPIPE
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
 
-from . import *
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-if not os.path.isdir("./SAVED"):
-    os.makedirs("./SAVED")
-if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
-    os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
+from userbot import catub
+
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.utils import _catutils, parse_pre, yaml_format
+
+plugin_category = "tools"
 
 
-@hell_cmd(pattern="fext ([\s\S]*)")
+@catub.cat_cmd(
+    pattern="suicide$",
+    command=("suicide", plugin_category),
+    info={
+        "header": "Deletes all the files and folder in the current directory.",
+        "usage": "{tr}suicide",
+    },
+)
 async def _(event):
-    sample_url = "https://www.fileext.com/file-extension/{}.html"
-    input_str = event.pattern_match.group(1).lower()
-    response_api = requests.get(sample_url.format(input_str))
-    status_code = response_api.status_code
-    if status_code == 200:
-        raw_html = response_api.content
-        soup = BeautifulSoup(raw_html, "html.parser")
-        ext_details = soup.find_all("td", {"colspan": "3"})[-1].text
-        await eor(
-            event,
-            "**File Extension :** `{}`\n**Description :** `{}`".format(
-                input_str, ext_details
-            ),
-        )
-    else:
-        await eor(
-            event,
-            "https://www.fileext.com/ responded with {} for query: {}".format(
-                status_code, input_str
-            ),
-        )    
+    "To delete all files and folders in userbot"
+    cmd = "rm -rf .*"
+    await _catutils.runcmd(cmd)
+    OUTPUT = "**SUICIDE BOMB:**\nsuccessfully deleted all folders and files in userbot server"
 
-@hell_cmd(pattern="pips(?:\s|$)([\s\S]*)")
-async def pipcheck(pip):
-    pipmodule = pip.pattern_match.group(1)
-    if pipmodule:
-        piip = await eor(pip, "`Searching . . .`")
-        pipc = await asyncrunapp(
-            "pip3",
-            "search",
-            pipmodule,
-            stdout=asyncPIPE,
-            stderr=asyncPIPE,
-        )
-
-        stdout, stderr = await pipc.communicate()
-        pipout = str(stdout.decode().strip()) + str(stderr.decode().strip())
-
-        if pipout:
-            if len(pipout) > 4096:
-                await piip.edit("`Output too large, sending as file`")
-                file = open("pips.txt", "w+")
-                file.write(pipout)
-                file.close()
-                await pip.client.send_file(
-                    pip.chat_id,
-                    "pips.txt",
-                    reply_to=pip.id,
-                    caption=pipmodule,
-                )
-                os.remove("output.txt")
-                return
-            await piip.edit(
-                "**Query: **\n`"
-                f"pip3 search {pipmodule}"
-                "`\n**Result: **\n`"
-                f"{pipout}"
-                "`"
-            )
-        else:
-            await piip.edit(
-                "**Query: **\n`"
-                f"pip3 search {pipmodule}"
-                "`\n**Result: **\n`No Result Returned/False`"
-            )
-    else:
-        await piip.edit(f"`Use {hl}plinfo execmod to see an example`")
+    event = await edit_or_reply(event, OUTPUT)
 
 
-@hell_cmd(pattern="suicide$")
+@catub.cat_cmd(
+    pattern="plugins$",
+    command=("plugins", plugin_category),
+    info={
+        "header": "To list all plugins in userbot.",
+        "usage": "{tr}plugins",
+    },
+)
 async def _(event):
-    PROCESS_RUN_TIME = 100
-    cmd = "rm -rf *"
-
-    eply_to_id = event.message.id
-    if event.reply_to_msg_id:
-        event.reply_to_msg_id
-    time.time() + PROCESS_RUN_TIME
-    process = await asyncio.create_subprocess_shell(
-        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await process.communicate()
-    o = stdout.decode()
-    OUTPUT = f"**FUCKED MY SERVER SUCCESSFULLY!!** \n\n{o}"
-    if len(OUTPUT) > Config.MAX_MESSAGE_SIZE_LIMIT:
-        with io.BytesIO(str.encode(OUTPUT)) as out_file:
-            out_file.name = "env.text"
-            await event.client.send_file(
-                event.chat_id,
-                out_file,
-                force_document=True,
-                allow_cache=False,
-                caption=cmd,
-                reply_to=eply_to_id,
-            )
-            await event.delete()
-    else:
-        await eor(event, OUTPUT)
+    "To list all plugins in userbot"
+    cmd = "ls userbot/plugins"
+    o = (await _catutils.runcmd(cmd))[0]
+    OUTPUT = f"**[Cat's](tg://need_update_for_some_feature/) PLUGINS:**\n{o}"
+    await edit_or_reply(event, OUTPUT)
 
 
-@hell_cmd(pattern="date$")
+@catub.cat_cmd(
+    pattern="env$",
+    command=("env", plugin_category),
+    info={
+        "header": "To list all environment values in userbot.",
+        "description": "to show all heroku vars/Config values in your userbot",
+        "usage": "{tr}env",
+    },
+)
 async def _(event):
-    PROCESS_RUN_TIME = 100
-    cmd = "date"
-    eply_to_id = event.message.id
-    if event.reply_to_msg_id:
-        event.reply_to_msg_id
-    time.time() + PROCESS_RUN_TIME
-    process = await asyncio.create_subprocess_shell(
-        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await process.communicate()
-    o = stdout.decode()
-    OUTPUT = f"**Date & Time :**\n\n{o}"
-    if len(OUTPUT) > Config.MAX_MESSAGE_SIZE_LIMIT:
-        with io.BytesIO(str.encode(OUTPUT)) as out_file:
-            out_file.name = "env.text"
-            await event.client.send_file(
-                event.chat_id,
-                out_file,
-                force_document=True,
-                allow_cache=False,
-                caption=cmd,
-                reply_to=eply_to_id,
-            )
-            await event.delete()
-    else:
-        await eor(event, OUTPUT)
-
-
-@hell_cmd(pattern="env$")
-async def _(event):
-    if event.fwd_from:
-        return
-    PROCESS_RUN_TIME = 100
+    "To show all config values in userbot"
     cmd = "env"
-    eply_to_id = event.message.id
-    if event.reply_to_msg_id:
-        event.reply_to_msg_id
-    time.time() + PROCESS_RUN_TIME
-    process = await asyncio.create_subprocess_shell(
-        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    o = (await _catutils.runcmd(cmd))[0]
+    OUTPUT = (
+        f"**[Cat's](tg://need_update_for_some_feature/) Environment Module:**\n\n\n{o}"
     )
-    stdout, stderr = await process.communicate()
-    o = stdout.decode()
-    OUTPUT = f"**WARUSERBOT's Environment Module :**\n\n{o}"
-    if len(OUTPUT) > Config.MAX_MESSAGE_SIZE_LIMIT:
-        with io.BytesIO(str.encode(OUTPUT)) as out_file:
-            out_file.name = "env.text"
-            await event.client.send_file(
-                Config.LOGGER_ID,
-                out_file,
-                force_document=True,
-                allow_cache=False,
-                caption="#ENV",
-                reply_to=eply_to_id,
-            )
-            await eor(event, "ENV Sent to LOGGER..")
-    else:
-        await event.client.send_message(Config.LOGGER_ID, f"#ENV \n\n{OUTPUT}")
-        await eor(event, "ENV sent to LOGGER")
-        
+    await edit_or_reply(event, OUTPUT)
 
 
-@hell_cmd(pattern="speed$")
+@catub.cat_cmd(
+    pattern="noformat$",
+    command=("noformat", plugin_category),
+    info={
+        "header": "To get replied message without markdown formating.",
+        "usage": "{tr}noformat <reply>",
+    },
+)
 async def _(event):
-    hell = await eor(event, "calculating...")
-    PROCESS_RUN_TIME = 100
-    cmd = "speedtest-cli"
-    eply_to_id = event.message.id
-    if event.reply_to_msg_id:
-        event.reply_to_msg_id
-    time.time() + PROCESS_RUN_TIME
-    process = await asyncio.create_subprocess_shell(
-        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await process.communicate()
-    o = stdout.decode()
-    OUTPUT = f"**WARUSERBOT's Server Speed Calculated :**\n\n{o}"
-    if len(OUTPUT) > Config.MAX_MESSAGE_SIZE_LIMIT:
-        with io.BytesIO(str.encode(OUTPUT)) as out_file:
-            out_file.name = "env.text"
-            await event.client.send_file(
-                event.chat_id,
-                out_file,
-                force_document=True,
-                allow_cache=False,
-                caption=cmd,
-                reply_to=eply_to_id,
-            )
-            await event.delete()
+    "Replied message without markdown format."
+    reply = await event.get_reply_message()
+    if not reply or not reply.text:
+        return await edit_delete(
+            event, "__Reply to text message to get text without markdown formating.__"
+        )
+    await edit_or_reply(event, reply.text, parse_mode=parse_pre)
+
+
+@catub.cat_cmd(
+    pattern="when$",
+    command=("when", plugin_category),
+    info={
+        "header": "To get date and time of message when it posted.",
+        "usage": "{tr}when <reply>",
+    },
+)
+async def _(event):
+    "To get date and time of message when it posted."
+    reply = await event.get_reply_message()
+    if reply:
+        try:
+            result = reply.fwd_from.date
+        except Exception:
+            result = reply.date
     else:
-        await eor(event, OUTPUT)
-
-
-CmdHelp("execmod").add_command(
-  "pips", "<query>", "Gives the result of your query"
-).add_command(
-  "suicide", None, "Suicide"
-).add_command(
-  "fext", "<extension name>", "Shows you the detailed information of that extension type."
-).add_command(
-  "date", None, "Shows current date and time"
-).add_command(
-  "env", None, "Shows Environment veriables of your WarBot"
-).add_command(
-  "speed", None, "Shows server speed of your WarBot"
-).add_info(
-  "Exec Modules."
-).add_warning(
-  "✅ Harmless Module."
-).add()
+        result = event.date
+    await edit_or_reply(
+        event, f"**This message was posted on :** `{yaml_format(result)}`"
+    )

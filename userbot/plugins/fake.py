@@ -1,94 +1,163 @@
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
+
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
+
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
 import asyncio
-import os
-import requests
+from random import choice, randint
 
-from telethon.tl.functions.users import GetFullUserRequest
-from telethon.tl.types import ChannelParticipantsAdmins
+from telethon.errors import BadRequestError
+from telethon.tl.functions.channels import EditAdminRequest
+from telethon.tl.types import ChatAdminRights
 
-from . import *
+from userbot import catub
 
-@hell_cmd(pattern="fpic$")
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.utils import get_user_from_event
+from . import ALIVE_NAME
+
+plugin_category = "fun"
+
+
+@catub.cat_cmd(
+    pattern="scam(?:\s|$)([\s\S]*)",
+    command=("scam", plugin_category),
+    info={
+        "header": "To show fake actions for a paticular period of time",
+        "description": "if time is not mentioned then it may choose random time 5 or 6 mintues for mentioning time use in seconds",
+        "usage": [
+            "{tr}scam <action> <time(in seconds)>",
+            "{tr}scam <action>",
+            "{tr}scam",
+        ],
+        "examples": "{tr}scam photo 300",
+        "actions": [
+            "typing",
+            "contact",
+            "game",
+            "location",
+            "voice",
+            "round",
+            "video",
+            "photo",
+            "document",
+        ],
+    },
+)
 async def _(event):
-    cid = await client_id(event)
-    hell_mention = cid[2]
-    url = "https://thispersondoesnotexist.com/image"
-    response = requests.get(url)
-    hell = await eor(event, "`Creating a fake face...`")
-    if response.status_code == 200:
-      with open("WARBOT.jpg", 'wb') as f:
-        f.write(response.content)
-    else:
-        return await eod(hell, "Failed to create Fake Face! Try again later.")
-    captin = f"Fake Image By {hell_mention}"
-    fole = "WARBOT.jpg"
-    await event.client.send_file(event.chat_id, fole, caption=captin, force_document=False)
-    await hell.delete()
-    os.system("rm /root/warbot/WARBOT.jpg ")
-
-
-@hell_cmd(pattern="fake ([\s\S]*)")
-async def _(event):
-    await event.delete()
+    options = [
+        "typing",
+        "contact",
+        "game",
+        "location",
+        "voice",
+        "round",
+        "video",
+        "photo",
+        "document",
+    ]
     input_str = event.pattern_match.group(1)
-    action = "typing"
-    if input_str:
-        action = input_str
-    async with event.client.action(event.chat_id, action):
-        await asyncio.sleep(86400)
-
-
-@hell_cmd(pattern="gbam$")
-async def gbun(event):
-    gbunVar = event.text
-    gbunVar = gbunVar[6:]
-    mentions = "`Warning!! User 𝙂𝘽𝘼𝙉𝙉𝙀𝘿 By Admin...\n`"
-    no_reason = "**Reason:**  __Madarchod Saala__"
-    hell = await eor(event, "** Nikal Lawde❗️⚜️☠️**")
-    asyncio.sleep(3.5)
-    chat = await event.get_input_chat()
-    async for x in event.client.iter_participants(chat, filter=ChannelParticipantsAdmins):
-        mentions += f""
-    reply_message = None
-    if event.reply_to_msg_id:
-        reply_message = await event.get_reply_message()
-        replied_user = await event.client(GetFullUserRequest(reply_message.sender_id))
-        firstname = replied_user.user.first_name
-        usname = replied_user.user.username
-        idd = reply_message.sender_id
-        if idd == 1891078417:
-            await hell.edit("`Wait a second, This is my master!`\n**How dare you threaten to ban my master nigger!**\n\n__Your account has been hacked! Pay 69$ to my master__ [Abhishek](https://t.me/Xabhish3k) __to release your account__😏", link_preview=False)
-        else:
-            jnl = (
-                "`Warning!! `"
-                "[{}](tg://user?id={})"
-                "` 𝙂𝘽𝘼𝙉𝙉𝙀𝘿 By Admin...\n\n`"
-                "**Person's Name: ** __{}__\n"
-                "**ID : ** `{}`\n"
-            ).format(firstname, idd, firstname, idd)
-            if usname == None:
-                jnl += "**Victim Nigga's username: ** `Doesn't own a username!`\n"
-            elif usname != "None":
-                jnl += "**Victim Nigga's username** : @{}\n".format(usname)
-            if len(gbunVar) > 0:
-                gbunm = "`{}`".format(gbunVar)
-                gbunr = "**Reason: **" + gbunm
-                jnl += gbunr
-            else:
-                jnl += no_reason
-            await hell.edit(jnl)
+    args = input_str.split()
+    if len(args) == 0:
+        scam_action = choice(options)
+        scam_time = randint(300, 360)
+    elif len(args) == 1:
+        try:
+            scam_action = str(args[0]).lower()
+            scam_time = randint(300, 360)
+        except ValueError:
+            scam_action = choice(options)
+            scam_time = int(args[0])
+    elif len(args) == 2:
+        try:
+            scam_action = str(args[0]).lower()
+            scam_time = int(args[1])
+        except ValueError:
+            return await edit_delete(event, "`Invalid Syntax !!`")
     else:
-        mention = "`Warning!! User 𝙂𝘽𝘼𝙉𝙉𝙀𝘿 By Admin...\nReason: Not Given `"
-        await hell.edit(mention)
+        return await edit_delete(event, "`Invalid Syntax !!`")
+    try:
+        if scam_time > 0:
+            await event.delete()
+            async with event.client.action(event.chat_id, scam_action):
+                await asyncio.sleep(scam_time)
+    except BaseException:
+        return
 
 
-CmdHelp("fake").add_command(
-  'fake', '<action>', 'This shows the fake action in the group  the actions are typing, contact, game ,location, voice, round, video, photo, document.'
-).add_command(
-  'gbam', '<reason> (optional)', 'Fake gban. Just for fun🤓'
-).add_command(
-  'picgen', None, 'Gives a fake face image'
-).add_info(
-  'Fake Actions.'
-).add_warning(
-  '✅ Harmless Module.'
-).add()
+@catub.cat_cmd(
+    pattern="prankpromote(?:\s|$)([\s\S]*)",
+    command=("prankpromote", plugin_category),
+    info={
+        "header": "To promote a person without admin rights",
+        "note": "You need proper rights for this",
+        "usage": [
+            "{tr}prankpromote <userid/username/reply>",
+            "{tr}prankpromote <userid/username/reply> <custom title>",
+        ],
+    },
+    groups_only=True,
+    require_admin=True,
+)
+async def _(event):
+    "To promote a person without admin rights"
+    new_rights = ChatAdminRights(other=True)
+    catevent = await edit_or_reply(event, "`Promoting...`")
+    user, rank = await get_user_from_event(event, catevent)
+    if not rank:
+        rank = "Admin"
+    if not user:
+        return
+    try:
+        await event.client(EditAdminRequest(event.chat_id, user.id, new_rights, rank))
+    except BadRequestError:
+        return await catevent.edit("__I think you don't have permission to promote__")
+    except Exception as e:
+        return await edit_delete(catevent, f"__{e}__", time=10)
+    await catevent.edit("`Promoted Successfully! Now gib Party`")
+
+
+@catub.cat_cmd(
+    pattern="padmin$",
+    command=("padmin", plugin_category),
+    info={
+        "header": "Fun animation for faking user promotion",
+        "description": "An animation that shows enabling all permissions to him that he is admin(fake promotion)",
+        "usage": "{tr}padmin",
+    },
+    groups_only=True,
+)
+async def _(event):
+    "Fun animation for faking user promotion."
+    animation_interval = 1
+    animation_ttl = range(20)
+    event = await edit_or_reply(event, "`promoting.......`")
+    animation_chars = [
+        "**Promoting User As Admin...**",
+        "**Enabling All Permissions To User...**",
+        "**(1) Send Messages: ☑️**",
+        "**(1) Send Messages: ✅**",
+        "**(2) Send Media: ☑️**",
+        "**(2) Send Media: ✅**",
+        "**(3) Send Stickers & GIFs: ☑️**",
+        "**(3) Send Stickers & GIFs: ✅**",
+        "**(4) Send Polls: ☑️**",
+        "**(4) Send Polls: ✅**",
+        "**(5) Embed Links: ☑️**",
+        "**(5) Embed Links: ✅**",
+        "**(6) Add Users: ☑️**",
+        "**(6) Add Users: ✅**",
+        "**(7) Pin Messages: ☑️**",
+        "**(7) Pin Messages: ✅**",
+        "**(8) Change Chat Info: ☑️**",
+        "**(8) Change Chat Info: ✅**",
+        "**Permission Granted Successfully**",
+        f"**pRoMooTeD SuCcEsSfUlLy bY: {ALIVE_NAME}**",
+    ]
+    for i in animation_ttl:
+        await asyncio.sleep(animation_interval)
+        await event.edit(animation_chars[i % 20])

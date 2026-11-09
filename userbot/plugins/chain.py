@@ -1,29 +1,50 @@
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
+
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
+
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
 from telethon.tl.functions.messages import SaveDraftRequest
 
-from . import *
+from ..core.managers import edit_delete, edit_or_reply
+from . import catub
 
-@hell_cmd(pattern="chain$")
-async def _(event):
-    hell = await eor(event, "Counting...")
+plugin_category = "tools"
+
+
+@catub.cat_cmd(
+    pattern="chain$",
+    command=("chain", plugin_category),
+    info={
+        "header": "Reply this command to any converstion(or message) and it will find the chain length of that message",
+        "usage": "{tr}chain <reply>",
+    },
+)
+async def chain(event):
+    "To find the chain length of a message."
+    msg = await event.get_reply_message()
+    if not msg:
+        return await edit_delete(event, "```reply to a message```", 10)
+    chat = (await catub.get_entity(event.chat_id)).id
+    msg_id = msg.id
+    await edit_or_reply(event, "`Counting...`")
     count = -1
-    message = event.message
-    while message:
-        reply = await message.get_reply_message()
+    if msg.reply_to:
+        msg_id = msg.reply_to.reply_to_top_id or msg.reply_to.reply_to_msg_id
+    thread = f"https://t.me/c/{chat}/{msg_id}?thread={msg_id}"
+    while msg:
+        reply = await msg.get_reply_message()
         if reply is None:
             await event.client(
                 SaveDraftRequest(
-                    await event.get_input_chat(), "", reply_to_msg_id=message.id
+                    await event.get_input_chat(), "", reply_to_msg_id=msg.id
                 )
             )
-        message = reply
+        msg = reply
         count += 1
-    await hell.edit(f"⛓️ **Chain length :**  `{count}`")
-
-
-CmdHelp("chain").add_command(
-  "chain", "Reply to a message", "Reply this command to any msg so that it finds chain length of that msg"
-).add_info(
-  "Chained Messages."
-).add_warning(
-  "✅ Harmless Module."
-).add()
+    await edit_or_reply(
+        event, f"**Chain length :** `{count}`\n**Thread link :** [Here]({thread})"
+    )

@@ -1,101 +1,84 @@
-########### IMPORTANT #############
-# Original Plugin By -> @Krishna_Singhal
-# Plugin link -> https://github.com/UsergeTeam/Userge-Plugins/blob/master/plugins/glitch.py
-# Info -> Glitch plugin for Userge made by @Krishna_Singhal in Pyrogram.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
 
-# Ported from Pyrogram to Telethon by @ForGo10God for †hê Hêllẞø†
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
 
-# USE WITH CREDITS !!
-##################################
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Special credits: @Krishna_Singhal (ported from userge)
 
 import os
 
-from PIL import Image
 from glitch_this import ImageGlitcher
+from PIL import Image
 
-from . import *
+from userbot import Convert, catub
 
-Glitched = Config.TMP_DOWNLOAD_DIRECTORY + "glitch.gif"
+from ..core.managers import edit_delete
+from ..helpers import reply_id, unsavegif
+
+plugin_category = "fun"
 
 
-@hell_cmd(pattern="glitch(?:\s|$)([\s\S]*)")
-async def glitch_(event):
-    hell = await eor(event, "`Trying to glitch this ...`")
-    replied = await event.get_reply_message()
-    inp = event.text[8:]
-    if not (replied and (
-            replied.photo or replied.sticker or replied.video or replied.gif)):
-        return await hell.edit("```Media not found...```")
-    if inp != "":
-        if not inp.isdigit():
-            return await eod(hell, "**Invalid Input !!** \n\nPlease enter digits only.")
-        input_ = int(inp)
-        if not 0 < input_ < 9:
-            return await eod(hell, "**Invalid Range !!** \n\n**Valid Range** - 1 to 8")
-        args = input_
-    else:
-        args = 2
-    if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
-        os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
-    await hell.edit("`Glitchingggggg`")
-    dls = await event.client.download_media(
-        replied,
-        Config.TMP_DOWNLOAD_DIRECTORY
+@catub.cat_cmd(
+    pattern="glitch(s)?(?: |$)([1-8])?",
+    command=("glitch", plugin_category),
+    info={
+        "header": "Glitches the given Image.",
+        "description": "Glitches the given mediafile (gif , stickers , image, videos) to a sticker/image and glitch range is from 1 to 8.\
+                    If nothing is mentioned then by default it is 2",
+        "options": {
+            "glitch": "To output result as gif.",
+            "glitchs": "To output result as sticker.",
+        },
+        "usage": ["{tr}glitch <1-8>", "{tr}glitch", "{tr}glitchs", "{tr}glitchs <1-8>"],
+    },
+)
+async def glitch(event):
+    "Glitches the given Image."
+    cmd = event.pattern_match.group(1)
+    catinput = event.pattern_match.group(2)
+    reply = await event.get_reply_message()
+    if not reply:
+        return await edit_delete(event, "`Reply to supported Media...`")
+    catid = await reply_id(event)
+    if not os.path.isdir("./temp"):
+        os.mkdir("./temp")
+    catinput = int(catinput) if catinput else 2
+    glitch_file = await Convert.to_image(
+        event,
+        reply,
+        dirct="./temp",
+        file="glitch.png",
     )
-    dls_loc = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, os.path.basename(dls))
-    glitch_file = None
-    if dls.endswith(".tgs"):
-        file_1 = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "glitch.png")
-        cmd = f"lottie_convert.py --frame 0 -if lottie -of png {dls_loc} {file_1}"
-        stdout, stderr = (await runcmd(cmd))[:2]
-        if not os.path.lexists(file_1):
-            await eod(hell, "```Sticker not found...```")
-            raise Exception(stdout + stderr)
-        glitch_file = file_1
-    elif dls.endswith(".webp"):
-        file_2 = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "glitch.png")
-        os.rename(dls_loc, file_2)
-        if not os.path.lexists(file_2):
-            await eod(hell, "```Sticker not found...```")
-            return
-        glitch_file = file_2
-    elif replied.gif or replied.video:
-        file_3 = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "glitch.png")
-        await take_ss(dls_loc, 0, file_3)
-        if not os.path.lexists(file_3):
-            await eod(hell, "```Sticker not found...```")
-            return
-        glitch_file = file_3
-    if glitch_file is None:
-        glitch_file = dls_loc
+    if glitch_file[1] is None:
+        return await edit_delete(
+            glitch_file[0], "__Unable to extract image from the replied message.__"
+        )
     glitcher = ImageGlitcher()
-    img = Image.open(glitch_file)
-    message_id = replied.id
-    glitch_img = glitcher.glitch_image(img, args, color_offset=True, gif=True)
-    DURATION = 200
-    LOOP = 0
-    glitch_img[0].save(
-        Glitched,
-        format='GIF',
-        append_images=glitch_img[1:],
-        save_all=True,
-        duration=DURATION,
-        loop=LOOP)
-    await event.client.send_file(
-        event.chat_id,
-        Glitched,
-        reply_to=message_id)
-    os.remove(Glitched)
-    await hell.delete()
-    for files in (dls_loc, glitch_file):
+    img = Image.open(glitch_file[1])
+    if cmd:
+        glitched = os.path.join("./temp", "glitched.webp")
+        glitch_img = glitcher.glitch_image(img, catinput, color_offset=True)
+        glitch_img.save(glitched)
+        await event.client.send_file(event.chat_id, glitched, reply_to=catid)
+    else:
+        glitched = os.path.join("./temp", "glitched.gif")
+        glitch_img = glitcher.glitch_image(img, catinput, color_offset=True, gif=True)
+        DURATION = 200
+        LOOP = 0
+        glitch_img[0].save(
+            glitched,
+            format="GIF",
+            append_images=glitch_img[1:],
+            save_all=True,
+            duration=DURATION,
+            loop=LOOP,
+        )
+        sandy = await event.client.send_file(event.chat_id, glitched, reply_to=catid)
+        await unsavegif(event, sandy)
+    await glitch_file[0].delete()
+    for files in (glitch_file[1], glitched):
         if files and os.path.exists(files):
             os.remove(files)
-
-
-CmdHelp("glitch").add_command(
-  "glitch", "1 to 8", "Glitches the replied gif/sticker/pic/video.", "glitch 5 <reply_to_a_media>"
-).add_info(
-  "Glitcher"
-).add_warning(
-  "✅ Harmless Module."
-).add()

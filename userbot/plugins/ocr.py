@@ -1,12 +1,28 @@
-import json
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
+
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
+
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
 import os
+
 import requests
+from googletrans import LANGUAGES
 
-from . import *
+from ..Config import Config
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.functions import getTranslate
+from ..sql_helper.globals import gvarstatus
+from . import Convert, catub, soft_deEmojify
+
+plugin_category = "utils"
 
 
-def ocr_space_file(
-    filename, overlay=False, api_key=Config.OCR_API, language="eng"
+async def ocr_space_file(
+    filename, overlay=False, api_key=Config.OCR_SPACE_API_KEY, language="eng"
 ):
     """OCR.space API request with local file.
         Python3.5 - not tested on 2.7
@@ -35,109 +51,74 @@ def ocr_space_file(
     return r.json()
 
 
-def ocr_space_url(url, overlay=False, api_key=Config.OCR_API, language="eng"):
-    """OCR.space API request with remote file.
-        Python3.5 - not tested on 2.7
-    :param url: Image url.
-    :param overlay: Is OCR.space overlay required in your response.
-                    Defaults to False.
-    :param api_key: OCR.space API key.
-                    Defaults to 'helloworld'.
-    :param language: Language code to be used in OCR.
-                    List of available language codes can be found on https://ocr.space/OCRAPI
-                    Defaults to 'en'.
-    :return: Result in JSON format.
-    """
-
-    payload = {
-        "url": url,
-        "isOverlayRequired": overlay,
-        "apikey": api_key,
-        "language": language,
-    }
-    r = requests.post(
-        "https://api.ocr.space/parse/image",
-        data=payload,
+@catub.cat_cmd(
+    pattern="(|t)ocr(?:\s|$)([\s\S]*)",
+    command=("ocr", plugin_category),
+    info={
+        "header": "To read text in image/gif/sticker/video and print it.",
+        "description": "Reply to an image or sticker to extract text from it.\n\nGet language codes from [here](https://ocr.space/ocrapi).",
+        "usage": "{tr}ocr <language code>",
+        "examples": "{tr}ocr eng",
+    },
+)
+async def ocr(event):
+    "To read text in media."
+    reply = await event.get_reply_message()
+    if not event.reply_to_msg_id or not reply.media:
+        return await edit_delete(event, "__Reply to a media to read text on it__")
+    catevent = await edit_or_reply(event, "`Reading...`")
+    if not os.path.isdir(Config.TEMP_DIR):
+        os.makedirs(Config.TEMP_DIR)
+    cmd = event.pattern_match.group(1)
+    lang_code = event.pattern_match.group(2)
+    output_file = await Convert.to_image(
+        event, reply, dirct="./temp", file="image.png", rgb=True, noedits=True
     )
-    return r.json()
-
-
-def progress(current, total):
-    logger.info(
-        "Downloaded {} of {}\nCompleted {}".format(
-            current, total, (current / total) * 100
+    if not output_file[1]:
+        return await edit_delete(
+            catevent, "`Couldn't find image. Are you sure you replied to image?`"
         )
-    )
-
-
-@hell_cmd(pattern="ocrlang$")
-async def get_ocr_languages(event):
-    languages = {}
-    languages["English"] = "eng"
-    languages["Arabic"] = "ara"
-    languages["Bulgarian"] = "bul"
-    languages["Chinese (Simplified)"] = "chs"
-    languages["Chinese (Traditional)"] = "cht"
-    languages["Croatian"] = "hrv"
-    languages["Czech"] = "cze"
-    languages["Danish"] = "dan"
-    languages["Dutch"] = "dut"
-    languages["Finnish"] = "fin"
-    languages["French"] = "fre"
-    languages["German"] = "ger"
-    languages["Greek"] = "gre"
-    languages["Hungarian"] = "hun"
-    languages["Korean"] = "kor"
-    languages["Italian"] = "ita"
-    languages["Japanese"] = "jpn"
-    languages["Polish"] = "pol"
-    languages["Portuguese"] = "por"
-    languages["Russian"] = "rus"
-    languages["Slovenian"] = "slv"
-    languages["Spanish"] = "spa"
-    languages["Swedish"] = "swe"
-    languages["Turkish"] = "tur"
-    a = json.dumps(languages, sort_keys=True, indent=4)
-    await eor(event, str(a))
-
-
-@hell_cmd(pattern="ocr(?:\s|$)([\s\S]*)")
-async def parse_ocr_space_api(event):
-    hell = await eor(event, "Processing weit...🤓")
-    if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
-        os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
-    lang_code = event.pattern_match.group(1)
-    downloaded_file_name = await event.client.download_media(
-        await event.get_reply_message(),
-        Config.TMP_DOWNLOAD_DIRECTORY,
-        progress_callback=progress,
-    )
-    test_file = ocr_space_file(filename=downloaded_file_name, language=lang_code)
+    test_file = await ocr_space_file(filename=output_file[1], language=lang_code)
     try:
         ParsedText = test_file["ParsedResults"][0]["ParsedText"]
-        ProcessingTimeInMilliseconds = str(
-            int(test_file["ProcessingTimeInMilliseconds"]) // 1000
-        )
-    except Exception as e:
-        await eod(hell, "**Errors !!** \n`{}`\n**Report This to** {}\n\n`{}`".format(
-                str(e), hell_grp, json.dumps(test_file, sort_keys=True, indent=4)
-            )
+    except BaseException:
+        await edit_delete(
+            catevent, "`Couldn't read it.`\n`I guess I need new glasses.`"
         )
     else:
-        await hell.edit("Read Document in {} seconds. \n{}".format(
-                ProcessingTimeInMilliseconds, ParsedText
+        if cmd == "":
+            await edit_or_reply(
+                catevent, f"**Here's what I could read from it:**\n\n`{ParsedText}`"
             )
-        )
-    os.remove(downloaded_file_name)
-    await hell.edit(ParsedText)
+        if cmd == "t":
+            TRT_LANG = gvarstatus("TOCR_LANG") or "en"
+            try:
+                reply_text = await getTranslate(
+                    soft_deEmojify(ParsedText), dest=TRT_LANG
+                )
+            except ValueError:
+                return await edit_delete(catevent, "`Invalid destination language.`")
+            source_lan = LANGUAGES[f"{reply_text.src.lower()}"]
+            transl_lan = LANGUAGES[f"{reply_text.dest.lower()}"]
+            tran_text = f"📜**Translate :-\nFrom {source_lan.title()}({reply_text.src.lower()}) to {transl_lan.title()}({reply_text.dest.lower()}) :**\n\n`{reply_text.text}`"
+            await edit_or_reply(
+                catevent,
+                f"🧧**Here's what I could read from it:**\n\n`{ParsedText}`\n\n{tran_text}",
+            )
+    if os.path.exists(output_file[1]):
+        os.remove(output_file[1])
 
 
-CmdHelp("ocr").add_command(
-  "ocr", "<reply to a img> <lang code>", "Reads and sends you the text written in replied image in selected language"
-).add_command(
-  "ocrlang", None, "Gives the list of supported languages of OCR."
-).add_info(
-  "Read Texts On Images."
-).add_warning(
-  "✅ Harmless Module."
-).add()
+@catub.cat_cmd(
+    pattern="tocr",
+    command=("tocr", plugin_category),
+    info={
+        "header": "To read text in image/gif/sticker/video and print it with its translation.",
+        "description": "Reply to an image/gif/sticker/video to extract text from it and print it with its translation.\n\nGet language codes from [here](https://ocr.space/ocrapi).",
+        "note": "for this command transalted language set lanuage by `.lang tocr` command.",
+        "usage": "{tr}tocr <language code>",
+        "examples": "{tr}tocr eng",
+    },
+)
+async def ocr(event):
+    "To read text in media & paste with translated."

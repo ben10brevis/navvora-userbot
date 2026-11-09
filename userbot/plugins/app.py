@@ -1,176 +1,128 @@
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
+
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
+
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+import os
+import urllib.request
+
 import bs4
 import requests
-from . import *
+from PIL import Image, ImageDraw, ImageFont
+
+from ..helpers import ellipse_create, file_check
+from ..helpers.utils import reply_id
+from . import catub, edit_delete, edit_or_reply
+
+plugin_category = "utils"
 
 
-@hell_cmd(pattern="app ([\s\S]*)")
-async def apk(event):
-    app_name = event.text[5:]
-    event = await eor(event, f"Searching for {app_name}...")
-    xyz = await client_id(event)
-    HELL_USER = xyz[1]
+bg_url_1 = "https://raw.githubusercontent.com/TgCatUB/CatUserbot-Resources/master/Resources/App/app-full.jpg"
+bg_url_2 = "https://raw.githubusercontent.com/TgCatUB/CatUserbot-Resources/master/Resources/App/app-suggest.jpg"
+
+
+def text_draw(font_name, font_size, img, text, width, hight, fill="white"):
+    font = ImageFont.truetype(font_name, font_size)
+    draw = ImageDraw.Draw(img)
+    draw.text(
+        (int(width), int(hight)),
+        text=text,
+        fill=fill,
+        font=font,
+    )
+
+
+@catub.cat_cmd(
+    pattern="app ([\s\S]*)",
+    command=("app", plugin_category),
+    info={
+        "header": "To search any app in playstore",
+        "description": "Searches the app in the playstore and provides the link to the app in playstore and fetchs app details",
+        "usage": "{tr}app <name>",
+    },
+)
+async def app_search(event):
+    "To search any app in playstore."
+    query = event.pattern_match.group(1)
+    reply_to_id = await reply_id(event)
+    if not query:
+        return await edit_delete(
+            event, "`Enter an app name to get result from PlayStore..`"
+        )
+    await edit_or_reply(event, "`Searching!...`")
     try:
-        remove_space = app_name.split(" ")
-        final_name = "+".join(remove_space)
+        final_name = query.replace(" ", "+")
         page = requests.get(
-            "https://play.google.com/store/search?q=" + final_name + "&c=apps"
+            f"https://play.google.com/store/search?q={final_name}&c=apps"
         )
-        str(page.status_code)
-        soup = bs4.BeautifulSoup(page.content, "lxml", from_encoding="utf-8")
-        results = soup.findAll("div", "ZmHEEd")
-        app_name = (
-            results[0].findNext("div", "Vpfmgd").findNext("div", "WsMG1c nnK0zc").text
-        )
-        app_dev = results[0].findNext("div", "Vpfmgd").findNext("div", "KoLSrc").text
-        app_dev_link = (
-            "https://play.google.com"
-            + results[0].findNext("div", "Vpfmgd").findNext("a", "mnKHRc")["href"]
-        )
-        app_rating = (
-            results[0]
-            .findNext("div", "Vpfmgd")
-            .findNext("div", "pf5lIe")
-            .find("div")["aria-label"]
-        )
+        soup = bs4.BeautifulSoup(page.content, "lxml")
+        fullapp_name = app_name = (
+            soup.find("div", "vWM94c") or soup.find("span", "DdYX5")
+        ).text
+        dev_name = (soup.find("div", "LbQbAe") or soup.find("span", "wMUdtb")).text
+        rating = (
+            soup.find("div", "TT9eCd") or soup.find("span", "w2kbF")
+        ).text.replace("star", "")
+        app_icon = (
+            soup.find("img", "T75of bzqKMd") or soup.find("img", "T75of stzEZd")
+        )["src"].split("=s")[0]
         app_link = (
             "https://play.google.com"
-            + results[0]
-            .findNext("div", "Vpfmgd")
-            .findNext("div", "vU6FJ p63iDd")
-            .a["href"]
+            + (soup.find("a", "Qfxief") or soup.find("a", "Si6A0c Gy4nib"))["href"]
         )
-        app_icon = (
-            results[0]
-            .findNext("div", "Vpfmgd")
-            .findNext("div", "uzcko")
-            .img["data-src"]
+        dev_link = (
+            "https://play.google.com/store/apps/developer?id="
+            + dev_name.replace(" ", "+")
         )
-        app_details = "<a href='" + app_icon + "'>📲&#8203;</a>"
-        app_details += " <b>" + app_name + "</b>"
-        app_details += (
-            "\n\n<code>Developer :</code> <a href='"
-            + app_dev_link
-            + "'>"
-            + app_dev
-            + "</a>"
+        review = soup.find("div", "g1rdde")
+        downloads = soup.findAll("div", "ClM7O")
+        info = soup.find("div", "omXQ6c")
+    except AttributeError:
+        return await edit_delete(
+            event, "No result found in search. Please enter **Valid app name**"
         )
-        app_details += "\n<code>Rating :</code> " + app_rating.replace(
-            "Rated ", "⭐ "
-        ).replace(" out of ", "/").replace(" stars", "", 1).replace(
-            " stars", "⭐ "
-        ).replace(
-            "five", "5"
-        )
-        app_details += (
-            "\n<code>Features :</code> <a href='"
-            + app_link
-            + "'>View in Play Store</a>"
-        )
-        app_details += f"\n\n==> {HELL_USER} <=="
-        await event.edit(app_details, link_preview=True, parse_mode="HTML")
-    except IndexError:
-        await event.edit("No result found in search. Please enter **Valid app name**")
-    except Exception as err:
-        await event.edit("Exception Occured:- " + str(err))
+    downloads = f"{downloads[1].text}  downloads" if downloads else None
+    info = info.text if info else None
+    review = review.text if review else None
+    bgurl = bg_url_1 if downloads and review else bg_url_2
+    file_check(re=False, me=False, mo=False, it=False, fa=False, sp=False, go=True)
+    if len(app_name) > 14:
+        app_name = f"{app_name[:14]}..."
+    pic_name = "playstore.png"
+    logo = "app_logo.png"
+    font = "temp/GoogleSans-Medium.ttf"
+    urllib.request.urlretrieve(app_icon, logo)
+    urllib.request.urlretrieve(bgurl, pic_name)
+    background = Image.open(pic_name).resize((1024, 512))
 
+    thumbmask = Image.new("RGBA", (1024, 512), 0)
+    thumbmask.paste(background, (0, 0))
 
-@hell_cmd(pattern="appr ([\s\S]*)")
-async def apkr(event):
-    app_name = event.text[6:]
-    event = await eor(event, f"Searching for {app_name}...")
-    try:
-        remove_space = app_name.split(" ")
-        final_name = "+".join(remove_space)
-        page = requests.get(
-            "https://play.google.com/store/search?q=" + final_name + "&c=apps"
-        )
-        str(page.status_code)
-        soup = bs4.BeautifulSoup(page.content, "lxml", from_encoding="utf-8")
-        results = soup.findAll("div", "ZmHEEd")
-        app_name = (
-            results[0].findNext("div", "Vpfmgd").findNext("div", "WsMG1c nnK0zc").text
-        )
-        app_dev = results[0].findNext("div", "Vpfmgd").findNext("div", "KoLSrc").text
-        app_dev_link = (
-            "https://play.google.com"
-            + results[0].findNext("div", "Vpfmgd").findNext("a", "mnKHRc")["href"]
-        )
-        app_rating = (
-            results[0]
-            .findNext("div", "Vpfmgd")
-            .findNext("div", "pf5lIe")
-            .find("div")["aria-label"]
-        )
-        app_link = (
-            "https://play.google.com"
-            + results[0]
-            .findNext("div", "Vpfmgd")
-            .findNext("div", "vU6FJ p63iDd")
-            .a["href"]
-        )
-        app_icon = (
-            results[0]
-            .findNext("div", "Vpfmgd")
-            .findNext("div", "uzcko")
-            .img["data-src"]
-        )
-        app_details = "<a href='" + app_icon + "'>📲&#8203;</a>"
-        app_details += " <b>" + app_name + "</b>"
-        app_details += (
-            "\n\n<code>Developer :</code> <a href='"
-            + app_dev_link
-            + "'>"
-            + app_dev
-            + "</a>"
-        )
-        app_details += "\n<code>Rating :</code> " + app_rating.replace(
-            "Rated ", "⭐ "
-        ).replace(" out of ", "/").replace(" stars", "", 1).replace(
-            " stars", "⭐ "
-        ).replace(
-            "five", "5"
-        )
-        app_details += (
-            "\n<code>Features :</code> <a href='"
-            + app_link
-            + "'>View in Play Store</a>"
-        )
-        app_details += "\n\n<b>Download : </b> <a href='https://t.me/+QAsQTAJOc4hlMWZl'>Request_Here</a>"
-        app_details += "\n\n===> @wrrlegend <==="
-        await event.edit(app_details, link_preview=True, parse_mode="HTML")
-    except IndexError:
-        await event.edit("No result found in search. Please enter **Valid app name**")
-    except Exception as err:
-        await event.edit("Exception Occured:- " + str(err))
+    thumb, x = ellipse_create(logo, 4, 0)
+    thumbmask.paste(thumb, (680, 53), thumb)
 
-
-@hell_cmd(pattern="mods ([\s\S]*)")
-async def mod(event):
-    hell = event.text[6:]
-    if not hell:
-        if event.is_reply:
-            (await event.get_reply_message()).message
-        else:
-            await eod(uwu, "Give name of apk to search mod...")
-            return
-    uwu = await eor(event, f"Searching Mod for  `{hell}` ...")
-    troll = await event.client.inline_query("PremiumAppBot", f"{(deEmojify(hell))}")
-    owo = await troll[0].click(Config.LOGGER_ID)
-    owo_id = owo.id
-    modd = await event.client.get_messages(entity=Config.LOGGER_ID, ids=owo_id)
-    await event.client.send_message(event.chat_id, modd)
-    await uwu.delete()
-    await owo.delete()
-
-
-CmdHelp("app").add_command(
-  "app", "<app name>", "Searches the app in the playstore and provides the link to the app in playstore and fetchs app details"
-).add_command(
-  "mods", "<app name>", "Searches the modded/premium app"
-).add_command(
-  "appr", "<app name>", "Searches the app in the playstore and provides the link to the app in playstore and fetchs app details with Xpl0iter request link."
-).add_info(
-  "Apps Details"
-).add_warning(
-  "✅ Harmless Module."
-).add()
+    text_draw(font, 65, thumbmask, app_name, 50, 30)
+    text_draw(font, 30, thumbmask, dev_name, 60, 120, "red")
+    text_draw(font, 70, thumbmask, f"{rating} / 5", 190, 260)
+    if bgurl == bg_url_1:
+        text_draw(font, 35, thumbmask, review, 80, 420)
+        text_draw(font, 30, thumbmask, downloads, 415, 420)
+    thumbmask.save(pic_name)
+    os.remove(logo)
+    app_details = f" <b>{fullapp_name}</b>"
+    app_details += f"\n\n<b>Developer :</b> <a href= {dev_link}>{dev_name}</a>"
+    app_details += f"\n<b>Rating :</b> <code>{rating} ⭐ </code>"
+    app_details += f"\n\n<b>Features :</b> <a href= {app_link}>View in Play Store</a>"
+    await event.delete()
+    await event.client.send_file(
+        event.chat_id,
+        pic_name,
+        caption=app_details,
+        parse_mode="HTML",
+        reply_to=reply_to_id,
+    )
+    os.remove(pic_name)

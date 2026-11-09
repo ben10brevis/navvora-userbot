@@ -1,69 +1,85 @@
-import datetime
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~# CatUserBot #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Copyright (C) 2020-2023 by TgCatUB@Github.
+
+# This file is part of: https://github.com/TgCatUB/catuserbot
+# and is released under the "GNU v3.0 License Agreement".
+
+# Please see: https://github.com/TgCatUB/catuserbot/blob/master/LICENSE
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+import math
+import os
+import re
 import time
 
-from warbot import *
-from warbot.clients import *
-from warbot.config import Config
-from warbot.helpers import *
-from warbot.utils import *
-from warbot.random_strings import *
-from warbot.version import __hell__
-from warbot.sql.gvar_sql import gvarstat
-from telethon import version
+import heroku3
+import requests
+import spamwatch as spam_watch
+from validators.url import url
 
-hell_logo = "./warbot/resources/pics/hellbot_logo.jpg"
-cjb = "./warbot/resources/pics/cjb.jpg"
-restlo = "./warbot/resources/pics/rest.jpeg"
-shuru = "./warbot/resources/pics/shuru.jpg"
-shhh = "./warbot/resources/pics/chup_madarchod.jpeg"
-hl = Config.HANDLER
-shl = Config.SUDO_HANDLER
-hell_ver = __hell__
-tel_ver = version.__version__
+from .. import *
+from ..Config import Config
+from ..core.logger import logging
+from ..core.managers import edit_delete, edit_or_reply
+from ..core.session import catub
+from ..helpers import *
+from ..helpers.utils import _catutils, _format, install_pip, reply_id
+from ..sql_helper.globals import gvarstatus
 
-async def get_user_id(ids):
-    if str(ids).isdigit():
-        userid = int(ids)
-    else:
-        userid = (await bot.get_entity(ids)).id
-    return userid
+# =================== CONSTANT ===================
+bot = catub
+LOGS = logging.getLogger(__name__)
+USERID = catub.uid if Config.OWNER_ID == 0 else Config.OWNER_ID
+ALIVE_NAME = Config.ALIVE_NAME
 
-is_sudo = "True" if gvarstat("SUDO_USERS") else "False"
+Heroku = heroku3.from_key(Config.HEROKU_API_KEY)
+heroku_api = "https://api.heroku.com"
+HEROKU_APP_NAME = Config.HEROKU_APP_NAME
+HEROKU_API_KEY = Config.HEROKU_API_KEY
 
-abus = Config.ABUSE
-if abus == "ON":
-    abuse_m = "Enabled"
+thumb_image_path = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "thumb_image.jpg")
+
+# mention user
+mention = f"[{Config.ALIVE_NAME}](tg://user?id={USERID})"
+hmention = f"<a href = tg://user?id={USERID}>{Config.ALIVE_NAME}</a>"
+
+PM_START = []
+PMMESSAGE_CACHE = {}
+PMMENU = "pmpermit_menu" not in Config.NO_LOAD
+
+# Gdrive
+TMP_DOWNLOAD_DIRECTORY = Config.TMP_DOWNLOAD_DIRECTORY
+
+# spamwatch support
+if Config.SPAMWATCH_API:
+    token = Config.SPAMWATCH_API
+    spamwatch = spam_watch.Client(token)
 else:
-    abuse_m ="Disabled"
+    spamwatch = None
 
 
-my_channel = Config.MY_CHANNEL or "waruserbot"
-my_group = Config.MY_GROUP or "waruserbotsupport"
-if "@" in my_channel:
-    my_channel = my_channel.replace("@", "")
-if "@" in my_group:
-    my_group = my_group.replace("@", "")
+# ================================================
 
-chnl_link = "https://t.me/waruserbot"
-hell_channel = f"[WarUserBot]({chnl_link})"
-grp_link = "https://t.me/waruserbotsupport"
-hell_grp = f"[Waruserbot Group]({grp_link})"
-
-WELCOME_FORMAT = """**Use these fomats in your welcome note to make them attractive.**
-  {mention} :  To mention the user
-  {title} : To get chat name in message
-  {count} : To get group members
-  {first} : To use user first name
-  {last} : To use user last name
-  {fullname} : To use user full name
-  {userid} : To use userid
-  {username} : To use user username
-  {my_first} : To use my first name
-  {my_fullname} : To use my full name
-  {my_last} : To use my last name
-  {my_mention} : To mention myself
-  {my_username} : To use my username
-"""
-# will add more soon
+if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
+    os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
 
 
+# thumb image
+if Config.THUMB_IMAGE is not None:
+    if check := url(Config.THUMB_IMAGE):
+        try:
+            with open(thumb_image_path, "wb") as f:
+                f.write(requests.get(Config.THUMB_IMAGE).content)
+        except Exception as e:
+            LOGS.info(str(e))
+
+
+def set_key(dictionary, key, value):
+    if key not in dictionary:
+        dictionary[key] = value
+    elif isinstance(dictionary[key], list):
+        if value in dictionary[key]:
+            return
+        dictionary[key].append(value)
+    else:
+        dictionary[key] = [dictionary[key], value]
