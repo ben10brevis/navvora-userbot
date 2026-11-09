@@ -1,50 +1,114 @@
-from userbot.core import cat_cmd, edit_delete, edit_or_reply, fetch
+import random
+
+from . import *
 
 
-async def _text(event, url, build):
-    try:
-        data = await fetch(url)
-        text = build(data)
-    except Exception:  # noqa: BLE001
-        return await edit_delete(event, "`Could not fetch that right now.`")
-    await edit_or_reply(event, text, parse_mode=None)
+@hell_cmd(pattern="sing$")
+async def _(e):
+    txt = random.choice(SONGS)
+    await eor(e, txt)
+
+@hell_cmd(pattern="hps$")
+async def _(e):
+    txt = random.choice(HARRY)
+    await eor(e, txt)
+
+@hell_cmd(pattern="gott$")
+async def _(e):
+    txt = random.choice(GOTT)
+    await eor(e, txt)
+
+@hell_cmd(pattern="gotm$")
+async def _(e):
+    txt = random.choice(GOTM)
+    await eor(e, txt, link_preview=True)
+
+@hell_cmd(pattern="bello$")
+async def _(e):
+    txt = random.choice(BELLO)
+    await eor(e, txt)
+
+@hell_cmd(pattern="tip$")
+async def _(e):
+    txt = random.choice(TIPS)
+    await eor(e, txt)
+
+@hell_cmd(pattern="qt$")
+async def _(e):
+    txt = random.choice(QT)
+    await eor(e, txt)
+
+@hell_cmd(pattern="logic$")
+async def _(e):
+    txt = random.choice(LOGIC)
+    await eor(e, txt)
+
+@hell_cmd(pattern="snow$")
+async def _(e):
+    txt = random.choice(SNOW)
+    await eor(e, txt)
+
+@hell_cmd(pattern="shayri$")
+async def _(e):
+    _, _, hell_mention = await client_id(e)
+    txt = random.choice(SHAYRI)
+    await eor(e, txt.format(hell_mention))
+
+@hell_cmd(pattern="hflirt$")
+async def _(e):
+    _, _, hell_mention = await client_id(e)
+    txt = random.choice(HFLIRT)
+    await eor(e, txt.format(hell_mention))
+
+@hell_cmd(pattern="eflirt$")
+async def _(e):
+    _, _, hell_mention = await client_id(e)
+    txt = random.choice(EFLIRT)
+    await eor(e, txt.format(hell_mention))
+
+@hell_cmd(pattern="attitude$")
+async def _(e):
+    _, _, hell_mention = await client_id(e)
+    txt = random.choice(ATTITUDE)
+    await eor(e, txt.format(hell_mention))
+
+@hell_cmd(pattern="gbye$")
+async def _(e):
+    _, _, hell_mention = await client_id(e)
+    txt = random.choice(GBYE)
+    await eor(e, txt.format(hell_mention))
 
 
-@cat_cmd("joke", command=("joke", "Random joke"), allow_sudo=True)
-async def joke(event):
-    await _text(event, "https://official-joke-api.appspot.com/random_joke",
-                lambda d: f"{d['setup']}\n\n{d['punchline']}")
-
-
-@cat_cmd("fact", command=("fact", "Random fact"), allow_sudo=True)
-async def fact(event):
-    await _text(event, "https://uselessfacts.jsph.pl/api/v2/facts/random?language=en", lambda d: d["text"])
-
-
-@cat_cmd("quote", command=("quote", "Random quote"), allow_sudo=True)
-async def quote(event):
-    await _text(event, "https://zenquotes.io/api/random", lambda d: f"“{d[0]['q']}”\n— {d[0]['a']}")
-
-
-@cat_cmd("advice", command=("advice", "Random advice"), allow_sudo=True)
-async def advice(event):
-    await _text(event, "https://api.adviceslip.com/advice", lambda d: d["slip"]["advice"])
-
-
-async def _image(event, url, pick):
-    try:
-        link = pick(await fetch(url))
-    except Exception:  # noqa: BLE001
-        return await edit_delete(event, "`Could not fetch that right now.`")
-    await event.delete()
-    await event.client.send_file(event.chat_id, link)
-
-
-@cat_cmd("cat", command=("cat", "Random cat picture"))
-async def cat(event):
-    await _image(event, "https://api.thecatapi.com/v1/images/search", lambda d: d[0]["url"])
-
-
-@cat_cmd("dog", command=("dog", "Random dog picture"))
-async def dog(event):
-    await _image(event, "https://dog.ceo/api/breeds/image/random", lambda d: d["message"])
+CmdHelp("randoms").add_command(
+  'sing', None, 'Sings a song'
+).add_command(
+  'hps', None, 'Random harry porter character'
+).add_command(
+  'gott', None, 'Sends a random thought'
+).add_command(
+  'gotm', None, 'Sends a random meme'
+).add_command(
+  'bello', None, 'Sends quote for being logical'
+).add_command(
+  'tip', None, 'Sends you a life changer tip'
+).add_command(
+  'qt', None, 'Sends a random question. solve it if you can!!'
+).add_command(
+  'logic', None, 'Sends you a logical quote'
+).add_command(
+  'snow', None, 'Sends random quote from Game of thrones'
+).add_command(
+  'gbye', None, 'Sends random good bye quote'
+).add_command(
+  'attitude', None, 'Sends a random attitude quote.'
+).add_command(
+  'eflirt', None, 'Sends a random flirt quote in english'
+).add_command(
+  'hflirt', None, 'Sends a random flirt quote in hindi'
+).add_command(
+  'shayri', None, 'Sends a random heart touching quote'
+).add_info(
+  'Some Random Quotes.'
+).add_warning(
+  '✅ Harmless Module.'
+).add()
