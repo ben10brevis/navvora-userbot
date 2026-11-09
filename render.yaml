@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: navvora-userbot
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: STRING_SESSION
+        sync: false
+      - key: TIMEZONE
+        value: Asia/Kolkata

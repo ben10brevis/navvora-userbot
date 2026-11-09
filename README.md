@@ -112,17 +112,37 @@ heroku logs -t
 4. No port or domain is needed. Check **Deployments → Logs** for `Logged in as ...`.
 5. Optional: add a **Volume** mounted at `/app/data` to keep notes/filters across redeploys.
 
-### G. Render
+### G. Render (paid worker)
 
 1. Push to a private GitHub repo.
 2. **New → Background Worker**, connect the repo, runtime **Docker**.
 3. Add the environment variables, then deploy. (Background workers are a paid service type; do not use a "Web Service", it needs an open port.)
 4. Optional: attach a **Disk** mounted at `/app/data`.
 
+### Free: Render + UptimeRobot
+
+Render's free plan only offers **web services**, and they sleep after 15 minutes without incoming visits. The bot now ships with a tiny built-in web page (it starts automatically when Render sets `PORT`), and UptimeRobot visits it every 5 minutes so the service never sleeps.
+
+1. **Push the project to a private GitHub repo.** `.env` is git-ignored; never commit it.
+2. On <https://render.com>: **New → Web Service** → connect the repo → Runtime **Docker** → Instance type **Free**.
+   (Or use **New → Blueprint**, which reads the included `render.yaml`.)
+3. Under **Environment**, add `APP_ID`, `API_HASH`, `STRING_SESSION` (and `TIMEZONE`, e.g. `Asia/Kolkata`). Click **Create Web Service**.
+4. Wait until the logs show `Logged in as ...`, then open your URL (`https://your-service.onrender.com`). You should see **Navvora UserBot is running**.
+5. On <https://uptimerobot.com>: sign up → **Add New Monitor** → type **HTTP(s)** → paste your Render URL → interval **5 minutes** → **Create Monitor**.
+6. Send `.alive` from your Telegram account to confirm.
+
+Things to know:
+- The free tier gives about 750 instance hours per month, enough for **one** service running 24/7. Don't create a second free service.
+- Render may ask for a card on signup, and free-tier rules change, so check Render's current pricing page.
+- Free instances restart now and then; the bot reconnects by itself. Local files in `data/` (notes, filters, PM approvals) reset on restart; your login does not.
+- If the bot stops replying, check Render logs, and make sure the same `STRING_SESSION` is not running anywhere else.
+
 ### H. Koyeb (or any Docker host)
 
 1. Create a service from your GitHub repo using the **Dockerfile**, service type **Worker** (no port).
 2. Add the environment variables and deploy.
+
+On any free web-service host the built-in keep-alive page starts when `PORT` is set, so pair it with UptimeRobot as above.
 
 Any host that can run `python main.py` or the Docker image works the same way.
 
