@@ -1,0 +1,16 @@
+{
+  "name": "Navvora UserBot",
+  "description": "Plugin-based Telegram userbot for your own account",
+  "keywords": ["telegram", "userbot", "telethon", "navvora"],
+  "buildpacks": [{ "url": "heroku/python" }],
+  "formation": { "worker": { "quantity": 1 } },
+  "env": {
+    "APP_ID": { "description": "API ID from my.telegram.org" },
+    "API_HASH": { "description": "API hash from my.telegram.org" },
+    "STRING_SESSION": { "description": "Run stringsetup.py locally to generate it" },
+    "COMMAND_HANDLER": { "description": "Command prefix", "value": ".", "required": false },
+    "ALIVE_NAME": { "description": "Name shown in .alive", "required": false },
+    "TIMEZONE": { "description": "e.g. Asia/Kolkata", "value": "UTC", "required": false },
+    "SUDO_USERS": { "description": "Comma separated user IDs", "required": false }
+  }
+}
