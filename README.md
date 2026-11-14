@@ -34,7 +34,7 @@ Type `.help` in any chat for the plugin list and `.help <plugin>` for its comman
 ### A. Run locally (quick test)
 
 ```bash
-python -m venv venv && source venv/bin/activate     # Windows: venv\Scripts\activate
+python -m venv venv && source venv/bin/activate     # Windows: venv\\Scripts\\activate
 pip install -r requirements.txt
 python main.py
 ```
@@ -173,6 +173,7 @@ Heroku, and Railway/Render/Koyeb without a volume, wipe local files on every res
 | profile | `.setname First \| Last` `.setbio` `.setusername` `.setpic` |
 | autoprofile | `.autoname on\|off` `.autobio on <text>\|off` |
 | pmpermit | `.pmguard on\|off` `.approve` `.disapprove` `.block` `.unblock` |
+| pmmanager | `.pmmanager on\|off\|status` `.pmreply <text|reset>` |
 | notes | `.save` `.get` `.notes` `.clear` |
 | filters | `.filter <word> <reply>` `.stop <word>` `.filters` |
 | welcome | `.setwelcome` `.clearwelcome` `.welcome` |
@@ -189,6 +190,17 @@ Heroku, and Railway/Render/Koyeb without a volume, wipe local files on every res
 | sudo | `.addsudo` `.delsudo` `.sudolist` |
 | system | `.restart` `.shutdown` `.update` `.logs` `.install` `.uninstall` |
 | dev | `.eval` `.term` (owner only) |
+
+### PM Manager
+
+PM Manager is disabled by default. Turn it on with `.pmmanager on`. It sends your configured reply to incoming private messages from people (not bots), at most once per person every six hours.
+
+- `.pmmanager on` / `.pmmanager off` — enable or disable automatic replies.
+- `.pmmanager status` — show the current setting and reply text.
+- `.pmreply <message>` — set your automatic reply.
+- `.pmreply reset` — restore the default reply.
+
+The setting and cooldowns are stored in `data/navvora_db.json`. Avoid enabling PM Manager and PM Guard together if you do not want both plugins to answer the same new message.
 
 Sudo users can only run commands marked `allow_sudo=True` (harmless lookups such as alive, ping, calc, weather, wiki). Group admin, profile, dev and system commands are always owner-only.
 
