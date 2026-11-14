@@ -10,6 +10,14 @@ DEFAULT_REPLY = (
     "as soon as I can."
 )
 REPLY_COOLDOWN = 6 * 60 * 60  # one automatic reply per person every six hours
+_SELF_ID = None
+
+
+async def _my_id(client):
+    global _SELF_ID
+    if _SELF_ID is None:
+        _SELF_ID = (await client.get_me()).id
+    return _SELF_ID
 
 
 def _settings():
@@ -86,7 +94,7 @@ async def pm_auto_reply(event):
     if (
         not sender
         or getattr(sender, "bot", False)
-        or sender.id in (777000, (await event.client.get_me()).id)
+        or sender.id in (777000, await _my_id(event.client))
     ):
         return
 
