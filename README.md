@@ -170,10 +170,10 @@ Heroku, and Railway/Render/Koyeb without a volume, wipe local files on every res
 | admin | `.pin` `.unpin` `.kick` `.ban` `.unban` |
 | groupadmin | `.mute` `.unmute` `.promote` `.demote` `.warn` `.warns` `.resetwarns` `.setrules` `.rules` `.lock` `.unlock` `.zombies [clean]` |
 | chat | `.chatinfo` `.admins` `.bots` `.link` `.leave` `.archive` `.unarchive` `.read` |
-| profile | `.setname First \\| Last` `.setbio` `.setusername` `.setpic` |
-| autoprofile | `.autoname on\\|off` `.autobio on <text>\\|off` |
-| pmpermit | `.pmguard on\\|off` `.approve` `.disapprove` `.block` `.unblock` |
-| pmmanager | `.pmmanager on\\|off\\|status` `.pmreply <text|reset>` |
+| profile | `.setname First \| Last` `.setbio` `.setusername` `.setpic` |
+| autoprofile | `.autoname on\|off` `.autobio on <text>\|off` |
+| pmpermit | `.pmguard on\|off` `.approve` `.disapprove` `.block` `.unblock` |
+| pmmanager | `.pmmanager on\|off\|status` `.pmreply <text|reset>` |
 | notes | `.save` `.get` `.notes` `.clear` |
 | filters | `.filter <word> <reply>` `.stop <word>` `.filters` |
 | welcome | `.setwelcome` `.clearwelcome` `.welcome` |
